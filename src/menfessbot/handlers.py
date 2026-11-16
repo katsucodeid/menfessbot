@@ -7,7 +7,7 @@ logger=logging.getLogger(__name__)
 
 def valid_submission_hashtag(content, allowed_hashtags):
     """Require exactly one configured hashtag as a standalone token."""
-    found = re.findall(r"(?<![\\w])#[A-Za-z0-9_]+", content or "")
+    found = re.findall(r"(?<![\w])#[A-Za-z0-9_]+", content or "")
     allowed = {tag.lower() for tag in allowed_hashtags}
     selected = [tag.lower() for tag in found if tag.lower() in allowed]
     return len(selected) == 1 and len(found) == 1
@@ -81,7 +81,7 @@ async def receive_submission(update,context):
     content=m.text or m.caption or ""
     if not valid_submission_hashtag(content,s.allowed_hashtags):
         choices=" ".join(s.allowed_hashtags)
-        await m.reply_text(f"Menfess wajib menyertakan tepat satu hashtag kategori dari daftar ini: {choices}\\nContoh: {s.allowed_hashtags[0]} Isi menfess kamu.")
+        await m.reply_text(f"Menfess wajib menyertakan tepat satu hashtag kategori dari daftar ini: {choices}\nContoh: {s.allowed_hashtags[0]} Isi menfess kamu.")
         return
     role=role_for(u.id,s); unlimited=role=="Developer"; store=context.application.bot_data["store"]
     try:
