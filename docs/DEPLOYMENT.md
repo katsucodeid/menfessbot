@@ -32,24 +32,41 @@ Add the following values (replace placeholders locally):
 ```dotenv
 BOT_TOKEN=your_botfather_token
 CHANNEL_ID=-1001234567890
-ADMIN_IDS=123456789,987654321
+REQUIRED_GROUP_ID=-1001234567891
+REQUIRED_CHANNEL_ID=-1001234567892
+AUDIT_CHANNEL_ID=-1001234567893
+DEV_IDS=123456789
+ADMIN_IDS=987654321
 DATABASE_PATH=/var/lib/menfessbot/menfessbot.db
 LOG_LEVEL=INFO
 SUBMISSION_COOLDOWN_SECONDS=60
 SUBMISSION_HOURLY_LIMIT=5
-RETENTION_DAYS=30
+RETENTION_DAYS=0
+SUBMISSION_COIN_COST=1
+ALLOWED_HASHTAGS=#katsuboy,#katsugirl,#katsuask
+GROUP_JOIN_URL=
+CHANNEL_JOIN_URL=
 ```
 
-Use numeric Telegram IDs, not usernames. Restrict access to the environment file and never commit it.
+Use numeric Telegram IDs, not usernames. DEV_IDS must contain at least one Developer ID. Add bot permissions for membership lookup and publication. Restrict access to the environment file and never commit it.
 
-## 3. Check Telegram permissions
+## 3. Roles, submissions and coins
+
+- Developer is the highest role and has unlimited submission coins.
+- Admin can moderate and grant coins; Member can submit, check balance/history and transfer coins.
+- Submissions are accepted only in private chat after membership checks in both required chats.
+- Each text or media caption must contain exactly one configured hashtag. Default: #katsuboy, #katsugirl, #katsuask.
+- Submission cost is charged when queued; rejected submissions receive a one-time refund. Transfers cannot overdraw wallets. All coin changes are ledgered.
+- No payment gateway is included; Admin/Developer grant coins manually.
+
+## 4. Check Telegram permissions
 
 - Add the bot to the destination channel as an administrator.
 - Grant only the permission needed to post messages.
 - Add moderator accounts to `ADMIN_IDS`; verify each numeric ID independently.
 - Test in a private test channel before using a public channel.
 
-## 4. Install the systemd service
+## 5. Install the systemd service
 
 Create `/etc/systemd/system/menfessbot.service`:
 
@@ -88,7 +105,7 @@ sudo systemctl status menfessbot
 sudo journalctl -u menfessbot -f
 ```
 
-## 5. Backups and upgrades
+## 6. Backups, restore and upgrades
 
 Stop the service before taking a consistent SQLite file copy:
 
@@ -100,6 +117,20 @@ sudo systemctl start menfessbot
 ```
 
 Keep backups encrypted and access-restricted. Test restoring a backup periodically.
+
+To restore, stop the service, preserve the failed database for investigation, replace it with a validated backup, restore ownership/permissions, and start the service again:
+
+```bash
+sudo systemctl stop menfessbot
+sudo cp /var/lib/menfessbot/menfessbot.db /var/lib/menfessbot/menfessbot.db.failed
+sudo cp /var/lib/menfessbot/menfessbot.db.backup /var/lib/menfessbot/menfessbot.db
+sudo chown menfessbot:menfessbot /var/lib/menfessbot/menfessbot.db
+sudo chmod 0600 /var/lib/menfessbot/menfessbot.db
+sudo systemctl start menfessbot
+sudo journalctl -u menfessbot -n 100 --no-pager
+```
+
+Test restores periodically and keep backups encrypted and access-restricted.
 
 For an upgrade, fetch reviewed code first, then:
 
@@ -113,11 +144,11 @@ sudo journalctl -u menfessbot -n 100 --no-pager
 
 Do not deploy directly from an unreviewed feature branch.
 
-## 6. Operational and privacy notes
+## 7. Operational and privacy notes
 
 - `/privacy` tells users which identifiers are stored and that moderators can view pending submissions.
-- `RETENTION_DAYS` cleanup runs once at startup and then every six hours while the bot is running. It deletes only reviewed rows; pending submissions are preserved. If the process is stopped, the next startup performs cleanup again.
+- `RETENTION_DAYS=0` (default) disables automatic cleanup. Positive values delete reviewed submission rows after N days; cleanup runs at startup and every six hours. Pending rows are never deleted. Coin ledger and audit records remain for accounting.
 - Rate limiting defaults to one submission per 60 seconds and five submissions per rolling hour per Telegram user ID.
 - Restrict SSH, keep the OS and Python dependencies updated, and monitor service logs.
 - Do not log bot tokens or message contents. Define a user-contact and data-request process appropriate to your jurisdiction.
-- The bot is an MVP; test permissions, backups, and failure recovery in a private channel before production.
+- The bot is an MVP; test permissions, backups, restore, and failure recovery in a private channel before production. The audit channel contains personal data and must remain Owner-only.

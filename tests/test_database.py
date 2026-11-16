@@ -96,6 +96,16 @@ class SubmissionStoreTests(unittest.TestCase):
         other = self.store.add_with_limits(1, 2, 11, cooldown_seconds=60, hourly_limit=1, now=now)
         self.assertIsNotNone(other)
 
+    def test_zero_retention_disables_cleanup_and_preserves_reviewed_rows(self):
+        sid = self.store.add(1, 1, 10)
+        self.store.set_status(sid, "approved")
+        self.assertEqual(self.store.prune_reviewed(0), 0)
+        self.assertIsNotNone(self.store.get(sid))
+
+    def test_negative_retention_is_rejected(self):
+        with self.assertRaises(ValueError):
+            self.store.prune_reviewed(-1)
+
     def test_retention_removes_only_old_reviewed_rows(self):
         now = datetime(2026, 2, 1, tzinfo=timezone.utc)
         old_pending = self.store.add(1, 1, 10)
