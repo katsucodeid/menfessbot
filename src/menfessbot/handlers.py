@@ -15,18 +15,45 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.effective_message.reply_text(
-        "Kirim pesan atau media ke bot. Semua kiriman menunggu persetujuan moderator.")
+        "Kirim pesan atau media ke bot. Kiriman akan masuk antrean dan hanya diterbitkan "
+        "setelah disetujui moderator. Gunakan /privacy untuk membaca kebijakan data.")
+
+
+async def privacy_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.effective_message.reply_text(
+        "Privasi MenfessBot\n"
+        "• Kiriman dan ID chat/pesan sumber disimpan sementara agar moderator dapat meninjau "
+        "dan bot dapat menerbitkan kiriman yang disetujui.\n"
+        "• ID pengguna disimpan untuk menerapkan batas pengiriman.\n"
+        "• Moderator dapat melihat kiriman sebelum diterbitkan.\n"
+        "• Kiriman yang ditolak atau diterbitkan akan dihapus otomatis setelah masa retensi "
+        "yang dikonfigurasi; kiriman yang masih menunggu tidak dihapus otomatis.\n"
+        "• Jangan kirim kata sandi, nomor identitas, alamat, atau informasi sensitif.\n"
+        "Hubungi pengelola bot untuk pertanyaan atau permintaan terkait data.")
 
 
 async def receive_submission(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = update.effective_message
     user = update.effective_user
+    if user is None:
+        await message.reply_text("Kiriman tidak dapat diproses tanpa identitas pengguna Telegram.")
+        return
     store: SubmissionStore = context.application.bot_data["store"]
+    settings = context.application.bot_data["settings"]
     try:
-        sid = store.add(message.chat_id, message.message_id, user.id if user else None)
+        sid = store.add_with_limits(
+            message.chat_id, message.message_id, user.id,
+            cooldown_seconds=settings.submission_cooldown_seconds,
+            hourly_limit=settings.submission_hourly_limit,
+        )
     except Exception:
         logger.exception("Unable to save submission")
         await message.reply_text("Maaf, kiriman belum dapat disimpan. Coba lagi nanti.")
+        return
+    if sid is None:
+        await message.reply_text(
+            f"Batas pengiriman tercapai. Maksimal {settings.submission_hourly_limit} kiriman per jam "
+            f"dengan jeda {settings.submission_cooldown_seconds} detik. Coba lagi nanti.")
         return
     keyboard = InlineKeyboardMarkup([[
         InlineKeyboardButton("Terbitkan", callback_data=f"approve:{sid}"),
@@ -70,7 +97,6 @@ async def moderate(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not submission or submission["status"] != "pending":
             await query.edit_message_text("Kiriman tidak ditemukan atau sudah ditinjau.")
             return
-
         if action == "approve":
             try:
                 await context.bot.copy_message(
@@ -83,11 +109,9 @@ async def moderate(update: Update, context: ContextTypes.DEFAULT_TYPE):
             status = "approved"
         else:
             status = "rejected"
-
         if not store.set_status(sid, status):
             await query.edit_message_text("Status kiriman berubah sebelum proses selesai. Periksa antrean moderator.")
             return
         await query.edit_message_text(f"Kiriman #{sid}: {status}.")
     finally:
-        # Safe after set_status (which removes the claim) and on every failure path.
         store.release_claim(sid)
