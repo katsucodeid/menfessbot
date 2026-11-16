@@ -19,7 +19,7 @@ Telegram menfess bot with a private moderation queue and channel publishing.
 
 ## Local setup
 1. Create a virtual environment: `python -m venv .venv`
-2. Activate it and install dependencies: `python -m pip install -r requirements.txt`
+2. Activate it and install the package: `python -m pip install .`
 3. Copy `.env.example` to `.env` and fill in the values.
 4. Run: `python -m menfessbot`
 
