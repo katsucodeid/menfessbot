@@ -1,6 +1,7 @@
 import os
 import tempfile
 import unittest
+from datetime import datetime, timedelta, timezone
 
 from menfessbot.database import SubmissionStore
 
@@ -48,6 +49,49 @@ class SubmissionStoreTests(unittest.TestCase):
         self.assertTrue(self.store.set_status(sid, "rejected"))
         self.assertFalse(self.store.claim(sid))
         self.assertEqual(self.store.get(sid)["status"], "rejected")
+
+    def test_cooldown_blocks_rapid_submission(self):
+        now = datetime(2026, 1, 1, tzinfo=timezone.utc)
+        first = self.store.add_with_limits(1, 1, 10, cooldown_seconds=60, hourly_limit=5, now=now)
+        second = self.store.add_with_limits(1, 2, 10, cooldown_seconds=60, hourly_limit=5, now=now + timedelta(seconds=30))
+        self.assertIsNotNone(first)
+        self.assertIsNone(second)
+
+    def test_cooldown_allows_after_interval(self):
+        now = datetime(2026, 1, 1, tzinfo=timezone.utc)
+        self.store.add_with_limits(1, 1, 10, cooldown_seconds=60, hourly_limit=5, now=now)
+        second = self.store.add_with_limits(1, 2, 10, cooldown_seconds=60, hourly_limit=5, now=now + timedelta(seconds=61))
+        self.assertIsNotNone(second)
+
+    def test_hourly_limit_blocks_sixth_submission(self):
+        now = datetime(2026, 1, 1, tzinfo=timezone.utc)
+        for index in range(5):
+            sid = self.store.add_with_limits(1, index + 1, 10, cooldown_seconds=0, hourly_limit=5,
+                                             now=now + timedelta(minutes=index * 2))
+            self.assertIsNotNone(sid)
+        blocked = self.store.add_with_limits(1, 99, 10, cooldown_seconds=0, hourly_limit=5,
+                                             now=now + timedelta(minutes=11))
+        self.assertIsNone(blocked)
+
+    def test_rate_limit_is_per_user(self):
+        now = datetime(2026, 1, 1, tzinfo=timezone.utc)
+        self.store.add_with_limits(1, 1, 10, cooldown_seconds=60, hourly_limit=1, now=now)
+        other = self.store.add_with_limits(1, 2, 11, cooldown_seconds=60, hourly_limit=1, now=now)
+        self.assertIsNotNone(other)
+
+    def test_retention_removes_only_old_reviewed_rows(self):
+        now = datetime(2026, 2, 1, tzinfo=timezone.utc)
+        old_pending = self.store.add(1, 1, 10)
+        old_approved = self.store.add(1, 2, 10)
+        self.store.set_status(old_approved, "approved")
+        # Set deterministic historical timestamps for the test.
+        import sqlite3
+        with self.store._connect() as db:
+            db.execute("UPDATE submissions SET created_at = ? WHERE id IN (?, ?)",
+                       ((now - timedelta(days=31)).strftime("%Y-%m-%d %H:%M:%S"), old_pending, old_approved))
+        self.assertEqual(self.store.prune_reviewed(30, now=now), 1)
+        self.assertIsNotNone(self.store.get(old_pending))
+        self.assertIsNone(self.store.get(old_approved))
 
 
 if __name__ == "__main__":
