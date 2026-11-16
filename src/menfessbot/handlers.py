@@ -60,7 +60,7 @@ async def privacy_command(update,context):
     retention=("Pembersihan otomatis kiriman yang telah ditinjau dinonaktifkan." if settings.retention_days==0
                else f"Kiriman yang telah ditinjau dihapus otomatis setelah {settings.retention_days} hari.")
     await update.effective_message.reply_text(
-        "Privasi MenfessBot\\n"
+        "Privasi MenfessBot\n"
         "Data yang dicatat: Telegram ID, username, nama tampilan, waktu kirim, metadata moderasi, dan transaksi koin. "
         "Owner dapat melihat identitas dan waktu melalui channel audit privat. Moderator dapat melihat isi kiriman sebelum publikasi. "
         f"{retention} Kiriman pending tidak pernah dihapus oleh pembersihan otomatis. "
