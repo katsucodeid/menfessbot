@@ -16,6 +16,8 @@ async def retention_maintenance(application):
     while True:
         await asyncio.sleep(6 * 60 * 60)
         settings = application.bot_data["settings"]
+        if settings.retention_days == 0:
+            continue
         removed = application.bot_data["store"].prune_reviewed(settings.retention_days)
         if removed:
             logger.info("Periodic retention cleanup removed %s reviewed submissions", removed)
@@ -32,7 +34,7 @@ def main():
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
     )
     store = SubmissionStore(settings.database_path)
-    removed = store.prune_reviewed(settings.retention_days)
+    removed = store.prune_reviewed(settings.retention_days) if settings.retention_days else 0
     if removed:
         logging.getLogger(__name__).info("Pruned %s expired reviewed submissions", removed)
 
