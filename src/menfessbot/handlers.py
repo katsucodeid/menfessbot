@@ -6,14 +6,17 @@ from .database import SubmissionStore
 
 logger = logging.getLogger(__name__)
 
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.effective_message.reply_text(
         "Halo! Kirim pesan atau media untuk diajukan sebagai menfess. "
         "Kiriman akan ditinjau moderator sebelum diterbitkan. Jangan kirim data pribadi.")
 
+
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.effective_message.reply_text(
         "Kirim pesan atau media ke bot. Semua kiriman menunggu persetujuan moderator.")
+
 
 async def receive_submission(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = update.effective_message
@@ -40,6 +43,7 @@ async def receive_submission(update: Update, context: ContextTypes.DEFAULT_TYPE)
     await message.reply_text("Kiriman diterima dan masuk antrean moderasi." if notified
                              else "Kiriman tersimpan, tetapi moderator belum dapat diberi tahu.")
 
+
 async def moderate(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     if query.from_user.id not in context.application.bot_data["admin_ids"]:
@@ -52,27 +56,38 @@ async def moderate(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except (ValueError, AttributeError):
         await query.edit_message_text("Permintaan moderasi tidak valid.")
         return
-    store: SubmissionStore = context.application.bot_data["store"]
-    submission = store.get(sid)
-    if not submission or submission["status"] != "pending":
-        await query.edit_message_text("Kiriman tidak ditemukan atau sudah ditinjau.")
-        return
-    if action == "approve":
-        try:
-            await context.bot.copy_message(
-                context.application.bot_data["channel_id"],
-                submission["source_chat_id"], submission["source_message_id"])
-        except Exception:
-            logger.exception("Publishing failed for submission %s", sid)
-            await query.edit_message_text("Gagal menerbitkan. Periksa izin bot di kanal.")
-            return
-        status = "approved"
-    elif action == "reject":
-        status = "rejected"
-    else:
+    if action not in {"approve", "reject"}:
         await query.edit_message_text("Aksi tidak dikenal.")
         return
-    if not store.set_status(sid, status):
-        await query.edit_message_text("Kiriman sudah diproses oleh moderator lain.")
+
+    store: SubmissionStore = context.application.bot_data["store"]
+    if not store.claim(sid):
+        await query.edit_message_text("Kiriman sedang diproses moderator lain, sudah ditinjau, atau tidak ditemukan.")
         return
-    await query.edit_message_text(f"Kiriman #{sid}: {status}.")
+
+    try:
+        submission = store.get(sid)
+        if not submission or submission["status"] != "pending":
+            await query.edit_message_text("Kiriman tidak ditemukan atau sudah ditinjau.")
+            return
+
+        if action == "approve":
+            try:
+                await context.bot.copy_message(
+                    context.application.bot_data["channel_id"],
+                    submission["source_chat_id"], submission["source_message_id"])
+            except Exception:
+                logger.exception("Publishing failed for submission %s", sid)
+                await query.edit_message_text("Gagal menerbitkan. Periksa izin bot di kanal; kiriman tetap menunggu.")
+                return
+            status = "approved"
+        else:
+            status = "rejected"
+
+        if not store.set_status(sid, status):
+            await query.edit_message_text("Status kiriman berubah sebelum proses selesai. Periksa antrean moderator.")
+            return
+        await query.edit_message_text(f"Kiriman #{sid}: {status}.")
+    finally:
+        # Safe after set_status (which removes the claim) and on every failure path.
+        store.release_claim(sid)
