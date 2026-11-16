@@ -10,7 +10,7 @@ Submissions are accepted only in the bot private chat. The sender must belong to
 5. Obtain numeric chat IDs (including a leading minus sign where applicable) and numeric user IDs.
 
 ## Environment
-Set BOT_TOKEN, CHANNEL_ID, REQUIRED_GROUP_ID, REQUIRED_CHANNEL_ID, AUDIT_CHANNEL_ID, DEV_IDS and ADMIN_IDS in .env. GROUP_JOIN_URL and CHANNEL_JOIN_URL are optional invite links. SUBMISSION_COIN_COST defaults to 1. Never commit .env or database files.
+Set BOT_TOKEN, CHANNEL_ID, REQUIRED_GROUP_ID, REQUIRED_CHANNEL_ID, AUDIT_CHANNEL_ID, DEV_IDS and ADMIN_IDS in .env. Set `ALLOWED_HASHTAGS` to a comma-separated list; default is `#katsuboy,#katsugirl,#katsuask`. Every submission must include exactly one allowed hashtag in its text or media caption. GROUP_JOIN_URL and CHANNEL_JOIN_URL are optional invite links. SUBMISSION_COIN_COST defaults to 1. Never commit .env or database files.
 
 ## Roles and coins
 - Developer: highest role; submission coins are unlimited.
