@@ -91,9 +91,17 @@ class SubmissionStore:
     def set_status(self,sid,status):
         if status not in {"approved","rejected"}: raise ValueError("Invalid status")
         with self._connect() as db:
+            db.execute("BEGIN IMMEDIATE")
             cur=db.execute("UPDATE submissions SET status=?,reviewed_at=CURRENT_TIMESTAMP WHERE id=? AND status='pending'",(status,sid))
-            if cur.rowcount: db.execute("DELETE FROM moderation_claims WHERE submission_id=?",(sid,)); return True
-            return False
+            if not cur.rowcount: return False
+            if status=="rejected":
+                audit=db.execute("SELECT user_id,coin_cost FROM submission_audit WHERE submission_id=?",(sid,)).fetchone()
+                if audit and audit["coin_cost"]>0:
+                    db.execute("INSERT OR IGNORE INTO wallets(user_id,balance) VALUES(?,0)",(audit["user_id"],))
+                    db.execute("UPDATE wallets SET balance=balance+?,updated_at=CURRENT_TIMESTAMP WHERE user_id=?",(audit["coin_cost"],audit["user_id"]))
+                    db.execute("INSERT INTO coin_transactions(user_id,actor_user_id,amount,transaction_type,description) VALUES(?,?,?,?,?)",(audit["user_id"],None,audit["coin_cost"],"refund",f"Pengembalian biaya menfess ditolak #{sid}"))
+            db.execute("DELETE FROM moderation_claims WHERE submission_id=?",(sid,))
+            return True
     def prune_reviewed(self,retention_days,*,now=None):
         if retention_days<1: raise ValueError("retention_days must be >= 1")
         cutoff=(utc(now)-timedelta(days=retention_days)).strftime("%Y-%m-%d %H:%M:%S")
