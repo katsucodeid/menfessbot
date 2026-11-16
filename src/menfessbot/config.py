@@ -73,6 +73,6 @@ def load_settings():
         chat_id("REQUIRED_GROUP_ID"),chat_id("REQUIRED_CHANNEL_ID"),chat_id("AUDIT_CHANNEL_ID"),
         os.getenv("DATABASE_PATH","data/menfessbot.db"),os.getenv("LOG_LEVEL","INFO").upper(),
         number("SUBMISSION_COOLDOWN_SECONDS",60),number("SUBMISSION_HOURLY_LIMIT",5,1),
-        number("RETENTION_DAYS",30,1),number("SUBMISSION_COIN_COST",1),
+        number("RETENTION_DAYS",0,0),number("SUBMISSION_COIN_COST",1),
         os.getenv("GROUP_JOIN_URL","").strip(),os.getenv("CHANNEL_JOIN_URL","").strip(),hashtags()
     )
