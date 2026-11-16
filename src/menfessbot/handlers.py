@@ -56,7 +56,16 @@ async def help_command(update,context):
         f"Setiap menfess wajib menyertakan tepat satu hashtag kategori: {choices}."
     )
 async def privacy_command(update,context):
-    await update.effective_message.reply_text("Data yang dicatat: Telegram ID, username, nama tampilan, waktu kirim, metadata moderasi dan transaksi koin. Owner dapat melihat identitas dan waktu melalui channel audit privat. Moderator melihat isi kiriman sebelum publikasi.")
+    settings=context.application.bot_data["settings"]
+    retention=("Pembersihan otomatis kiriman yang telah ditinjau dinonaktifkan." if settings.retention_days==0
+               else f"Kiriman yang telah ditinjau dihapus otomatis setelah {settings.retention_days} hari.")
+    await update.effective_message.reply_text(
+        "Privasi MenfessBot\\n"
+        "Data yang dicatat: Telegram ID, username, nama tampilan, waktu kirim, metadata moderasi, dan transaksi koin. "
+        "Owner dapat melihat identitas dan waktu melalui channel audit privat. Moderator dapat melihat isi kiriman sebelum publikasi. "
+        f"{retention} Kiriman pending tidak pernah dihapus oleh pembersihan otomatis. "
+        "Data transaksi koin dan catatan audit disimpan untuk akuntabilitas. Jangan kirim kata sandi atau data sensitif."
+    )
 async def balance_command(update,context):
     if role_for(update.effective_user.id,context.application.bot_data["settings"])=="Developer":
         await update.effective_message.reply_text("Saldo: ∞ (Developer memiliki koin unlimited)."); return
