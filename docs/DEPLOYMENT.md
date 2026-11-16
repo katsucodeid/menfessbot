@@ -24,4 +24,4 @@ Set BOT_TOKEN, CHANNEL_ID, REQUIRED_GROUP_ID, REQUIRED_CHANNEL_ID, AUDIT_CHANNEL
 Run python -m venv .venv, activate it, run python -m pip install ., copy .env.example to .env, configure it, then run python -m menfessbot.
 
 ## Privacy
-The audit channel contains personal data. Restrict it to Owner, disclose the collection in /privacy, and define a suitable retention policy. Reviewed submission rows are pruned at startup; audit and coin ledger records remain for accounting. Securely back up SQLite.
+The audit channel contains personal data. Restrict it to Owner, disclose the collection in /privacy, and define a suitable retention policy. Reviewed submission rows are pruned at startup and every six hours only when `RETENTION_DAYS` is greater than zero; `0` disables automatic cleanup. Pending rows are never deleted. Audit and coin ledger records remain for accounting. Securely back up SQLite.
