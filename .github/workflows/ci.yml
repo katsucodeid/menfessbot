@@ -1,9 +1,9 @@
 name: CI
 on:
   push:
-    branches: [main, feat/privacy-rate-limits-deployment]
+    branches: [main, feat/privacy-rate-limits-deployment, feat/private-membership-roles-coins]
   pull_request:
-    branches: [main]
+    branches: [main, feat/privacy-rate-limits-deployment]
 permissions:
   contents: read
 jobs:
