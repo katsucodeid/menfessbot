@@ -3,7 +3,7 @@ on:
   push:
     branches: [main]
   pull_request:
-    branches: [main, feat/private-membership-roles-coins]
+    branches: [main, feat/privacy-rate-limits-deployment]
 permissions:
   contents: read
 jobs:
