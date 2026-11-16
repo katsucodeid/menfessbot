@@ -4,6 +4,7 @@ Telegram menfess bot with private-chat submissions, mandatory group and channel 
 
 ## Features
 - Accepts submissions only through the bot private chat.
+- Requires exactly one configured category hashtag per submission (default: `#katsuboy`, `#katsugirl`, or `#katsuask`); applies to text and media captions.
 - Requires membership in both configured group and channel.
 - Approved posts are copied to the configured publication channel; the required group is never used for publishing.
 - Private Owner audit channel records sender Telegram ID, username, display name, role and submission time.
@@ -25,6 +26,7 @@ Run: python -m venv .venv; activate the environment; python -m pip install .; co
 - DEV_IDS: Developer/Owner Telegram user IDs.
 - ADMIN_IDS: Admin Telegram user IDs.
 - SUBMISSION_COIN_COST: coin fee per submission (default 1).
+- ALLOWED_HASHTAGS: comma-separated allowed category hashtags; defaults to `#katsuboy,#katsugirl,#katsuask`. Each submission must include exactly one.
 - SUBMISSION_COOLDOWN_SECONDS: cooldown (default 60).
 - SUBMISSION_HOURLY_LIMIT: max submissions per rolling hour (default 5).
 - RETENTION_DAYS: retention for reviewed submission rows.
