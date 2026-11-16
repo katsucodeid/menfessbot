@@ -1,9 +1,16 @@
 """Private submissions, join verification, roles, moderation and coin economy."""
-import html,logging
+import html,logging,re
 from telegram import InlineKeyboardButton,InlineKeyboardMarkup
 from telegram.constants import ChatMemberStatus
 from .database import SubmissionStore
 logger=logging.getLogger(__name__)
+
+def valid_submission_hashtag(content, allowed_hashtags):
+    """Require exactly one configured hashtag as a standalone token."""
+    found = re.findall(r"(?<![\\w])#[A-Za-z0-9_]+", content or "")
+    allowed = {tag.lower() for tag in allowed_hashtags}
+    selected = [tag.lower() for tag in found if tag.lower() in allowed]
+    return len(selected) == 1 and len(found) == 1
 
 def role_for(uid,settings):
     if uid in settings.developer_ids: return "Developer"
@@ -35,9 +42,9 @@ async def membership_gate(update,context):
     return False
 
 async def start(update,context):
-    await update.effective_message.reply_text("Selamat datang! Kirim teks atau media di chat pribadi ini untuk mengajukan menfess. Gunakan /balance untuk saldo dan /help untuk panduan.")
+    await update.effective_message.reply_text("Selamat datang! Kirim teks atau media di chat pribadi ini dengan tepat satu hashtag kategori: #katsuboy, #katsugirl, atau #katsuask. Gunakan /balance untuk saldo dan /help untuk panduan.")
 async def help_command(update,context):
-    await update.effective_message.reply_text("/start · /privacy · /balance · /transactions · /transfer ID JUMLAH · /grant ID JUMLAH (Admin/Developer)")
+    await update.effective_message.reply_text("/start · /privacy · /balance · /transactions · /transfer ID JUMLAH · /grant ID JUMLAH (Admin/Developer)\nSetiap menfess wajib menyertakan tepat satu hashtag kategori yang diizinkan.")
 async def privacy_command(update,context):
     await update.effective_message.reply_text("Data yang dicatat: Telegram ID, username, nama tampilan, waktu kirim, metadata moderasi dan transaksi koin. Owner dapat melihat identitas dan waktu melalui channel audit privat. Moderator melihat isi kiriman sebelum publikasi.")
 async def balance_command(update,context):
@@ -70,7 +77,13 @@ async def grant_command(update,context):
 async def receive_submission(update,context):
     m=update.effective_message; u=update.effective_user
     if m.chat.type!="private" or not await membership_gate(update,context): return
-    s=context.application.bot_data["settings"]; role=role_for(u.id,s); unlimited=role=="Developer"; store=context.application.bot_data["store"]
+    s=context.application.bot_data["settings"]
+    content=m.text or m.caption or ""
+    if not valid_submission_hashtag(content,s.allowed_hashtags):
+        choices=" ".join(s.allowed_hashtags)
+        await m.reply_text(f"Menfess wajib menyertakan tepat satu hashtag kategori dari daftar ini: {choices}\\nContoh: {s.allowed_hashtags[0]} Isi menfess kamu.")
+        return
+    role=role_for(u.id,s); unlimited=role=="Developer"; store=context.application.bot_data["store"]
     try:
         sid,error=store.create_submission(m.chat_id,m.message_id,u.id,cooldown_seconds=s.submission_cooldown_seconds,
             hourly_limit=s.submission_hourly_limit,coin_cost=s.submission_coin_cost,unlimited=unlimited,
