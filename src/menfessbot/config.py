@@ -20,6 +20,7 @@ class Settings:
     submission_coin_cost:int
     group_join_url:str
     channel_join_url:str
+    allowed_hashtags:tuple[str, ...]
 
 def number(name, default=0, minimum=0):
     try:
@@ -45,6 +46,16 @@ def ids(name, required=False):
     except ValueError as exc:
         raise ValueError(f"{name} must contain numeric IDs") from exc
 
+def hashtags(name="ALLOWED_HASHTAGS", default="#katsuboy,#katsugirl,#katsuask"):
+    raw=os.getenv(name,default)
+    values=tuple(dict.fromkeys(x.strip().lower() for x in raw.split(",") if x.strip()))
+    if not values:
+        raise ValueError(f"{name} must contain at least one hashtag")
+    import re
+    if any(not re.fullmatch(r"#[a-z0-9_]+", tag) for tag in values):
+        raise ValueError(f"{name} must be comma-separated hashtags such as #katsuboy,#katsugirl")
+    return values
+
 def load_settings():
     load_dotenv()
     token=os.getenv("BOT_TOKEN","").strip()
@@ -59,5 +70,5 @@ def load_settings():
         os.getenv("DATABASE_PATH","data/menfessbot.db"),os.getenv("LOG_LEVEL","INFO").upper(),
         number("SUBMISSION_COOLDOWN_SECONDS",60),number("SUBMISSION_HOURLY_LIMIT",5,1),
         number("RETENTION_DAYS",30,1),number("SUBMISSION_COIN_COST",1),
-        os.getenv("GROUP_JOIN_URL","").strip(),os.getenv("CHANNEL_JOIN_URL","").strip()
+        os.getenv("GROUP_JOIN_URL","").strip(),os.getenv("CHANNEL_JOIN_URL","").strip(),hashtags()
     )
