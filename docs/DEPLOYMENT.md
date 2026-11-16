@@ -116,7 +116,7 @@ Do not deploy directly from an unreviewed feature branch.
 ## 6. Operational and privacy notes
 
 - `/privacy` tells users which identifiers are stored and that moderators can view pending submissions.
-- `RETENTION_DAYS` cleanup currently runs at application startup and deletes only reviewed rows. Pending submissions are preserved. Restart the service periodically if you need cleanup to run periodically; a scheduled cleanup job is a future enhancement.
+- `RETENTION_DAYS` cleanup runs once at startup and then every six hours while the bot is running. It deletes only reviewed rows; pending submissions are preserved. If the process is stopped, the next startup performs cleanup again.
 - Rate limiting defaults to one submission per 60 seconds and five submissions per rolling hour per Telegram user ID.
 - Restrict SSH, keep the OS and Python dependencies updated, and monitor service logs.
 - Do not log bot tokens or message contents. Define a user-contact and data-request process appropriate to your jurisdiction.
