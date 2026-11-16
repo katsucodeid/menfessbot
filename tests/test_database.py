@@ -63,6 +63,23 @@ class SubmissionStoreTests(unittest.TestCase):
         second = self.store.add_with_limits(1, 2, 10, cooldown_seconds=60, hourly_limit=5, now=now + timedelta(seconds=61))
         self.assertIsNotNone(second)
 
+    def test_cooldown_longer_than_one_hour_is_enforced(self):
+        now = datetime(2026, 1, 1, tzinfo=timezone.utc)
+        first = self.store.add_with_limits(
+            1, 1, 10, cooldown_seconds=7200, hourly_limit=5, now=now
+        )
+        blocked = self.store.add_with_limits(
+            1, 2, 10, cooldown_seconds=7200, hourly_limit=5,
+            now=now + timedelta(hours=1, minutes=30)
+        )
+        allowed = self.store.add_with_limits(
+            1, 3, 10, cooldown_seconds=7200, hourly_limit=5,
+            now=now + timedelta(hours=2, minutes=1)
+        )
+        self.assertIsNotNone(first)
+        self.assertIsNone(blocked)
+        self.assertIsNotNone(allowed)
+
     def test_hourly_limit_blocks_sixth_submission(self):
         now = datetime(2026, 1, 1, tzinfo=timezone.utc)
         for index in range(5):
