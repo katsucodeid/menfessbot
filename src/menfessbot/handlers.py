@@ -13,7 +13,7 @@ def role_for(uid,settings):
 async def is_member(bot,chat_id,uid):
     try:
         member=await bot.get_chat_member(chat_id,uid)
-        return member.status not in {ChatMemberStatus.LEFT,ChatMemberStatus.BANNED}
+        return member.status not in {ChatMemberStatus.LEFT,ChatMemberStatus.BANNED} and not (member.status == ChatMemberStatus.RESTRICTED and not getattr(member, "is_member", False))
     except Exception:
         logger.exception("Membership lookup failed for chat %s",chat_id); return False
 
