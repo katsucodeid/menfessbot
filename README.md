@@ -1,55 +1,45 @@
 # MenfessBot
 
-Telegram menfess bot with a private moderation queue and channel publishing.
+Telegram menfess bot with private-chat submissions, mandatory group and channel membership, moderation, Owner audit logging, role-based access and coin wallets.
 
 ## Features
-- Receive text and Telegram media.
-- Store pending submissions in SQLite.
-- Admin-only moderation callbacks and channel publishing.
-- Per-user submission cooldown and hourly rate limit.
-- `/privacy` command describing stored data and moderator access.
-- Automatic retention cleanup for reviewed submissions; pending submissions are never auto-deleted.
-- Automated database and handler tests.
+- Accepts submissions only through the bot private chat.
+- Requires exactly one configured category hashtag per submission (default: `#katsuboy`, `#katsugirl`, or `#katsuask`); applies to text and media captions.
+- Requires membership in both configured group and channel.
+- Approved posts are copied to the configured publication channel; the required group is never used for publishing.
+- Private Owner audit channel records sender Telegram ID, username, display name, role and submission time.
+- Developer has unlimited submission coins; Admin can moderate and grant coins; Member can submit and use wallet commands.
+- Coin balances, transaction ledger, transfers, submission fee and automatic refund when a submission is rejected.
+- SQLite persistence, per-user cooldown and rolling hourly limit.
+- Reviewed submissions are pruned at startup and every six hours; pending items are retained.
 
-## Requirements
-- Python 3.11+
-- Telegram bot token from [@BotFather](https://t.me/BotFather)
-- Bot is administrator in the destination channel with permission to post
-- Numeric Telegram user IDs for moderators
+## Setup
+Requires Python 3.11+ and a Telegram bot token from @BotFather. Add the bot to both required chats so it can check membership. Give it post permission in the publication channel, and send-message permission in the private Owner audit channel.
 
-## Local setup
-1. Create a virtual environment: `python -m venv .venv`
-2. Activate it and install the package: `python -m pip install .`
-3. Copy `.env.example` to `.env` and fill in the values.
-4. Run: `python -m menfessbot`
+Run: python -m venv .venv; activate the environment; python -m pip install .; copy .env.example to .env and fill the values; then python -m menfessbot.
 
-## Configuration
-| Variable | Required | Default | Description |
-|---|---|---|---|
-| BOT_TOKEN | Yes | — | Telegram bot token; keep secret |
-| CHANNEL_ID | Yes | — | Destination channel ID |
-| ADMIN_IDS | Yes | — | Comma-separated numeric moderator IDs |
-| DATABASE_PATH | No | data/menfessbot.db | SQLite database path |
-| LOG_LEVEL | No | INFO | Python logging level |
-| SUBMISSION_COOLDOWN_SECONDS | No | 60 | Minimum seconds between a user's submissions; 0 disables cooldown |
-| SUBMISSION_HOURLY_LIMIT | No | 5 | Maximum submissions per user in a rolling hour |
-| RETENTION_DAYS | No | 30 | Age after which reviewed rows are removed; must be at least 1 |
+## Environment variables
+- BOT_TOKEN: bot token (secret).
+- CHANNEL_ID: publication channel ID.
+- REQUIRED_GROUP_ID and REQUIRED_CHANNEL_ID: mandatory membership destinations.
+- GROUP_JOIN_URL and CHANNEL_JOIN_URL: optional join links.
+- AUDIT_CHANNEL_ID: private Owner-only audit channel.
+- DEV_IDS: Developer/Owner Telegram user IDs.
+- ADMIN_IDS: Admin Telegram user IDs.
+- SUBMISSION_COIN_COST: coin fee per submission (default 1).
+- ALLOWED_HASHTAGS: comma-separated allowed category hashtags; defaults to `#katsuboy,#katsugirl,#katsuask`. Each submission must include exactly one.
+- SUBMISSION_COOLDOWN_SECONDS: cooldown (default 60).
+- SUBMISSION_HOURLY_LIMIT: max submissions per rolling hour (default 5).
+- RETENTION_DAYS: retention for reviewed submission rows.
+
+Telegram chat IDs may be negative. Never commit .env, bot tokens, or database files. The audit channel contains personal data and must remain private.
+
+## Commands
+/start, /help, /privacy, /balance, /transactions, /transfer USER_ID AMOUNT, /grant USER_ID AMOUNT [reason] (Admin/Developer only).
 
 ## Tests
-Install development dependencies and run:
-```bash
-python -m pip install -r requirements-dev.txt
-PYTHONPATH=src python -m unittest discover -s tests -v
-```
-
-## Deployment
-See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for a systemd VPS deployment guide, service hardening, backups, and upgrade steps.
-
-## Privacy and operations
-The bot stores source chat/message IDs and sender user IDs to support moderation, publishing, and rate limiting. Moderators can view submissions before publication. Reviewed submissions are pruned at startup after the configured retention period; pending submissions are preserved. The privacy command is an operational notice, not a substitute for a privacy policy tailored to your jurisdiction. Restrict database access, back it up securely, and never commit `.env` or real tokens.
-
-## Contributing
-Read [CONTRIBUTING.md](CONTRIBUTING.md). Use pull requests and include tests for behavior changes.
+Install development requirements and run: PYTHONPATH=src python -m unittest discover -s tests -v.
+See docs/DEPLOYMENT.md for Telegram permissions and privacy setup.
 
 ## License
-MIT. See [LICENSE](LICENSE).
+MIT.
