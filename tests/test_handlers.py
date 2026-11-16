@@ -1,7 +1,20 @@
 import unittest
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
-from menfessbot.handlers import role_for,membership_gate
+from menfessbot.handlers import role_for,membership_gate,valid_submission_hashtag
+class HashtagTests(unittest.TestCase):
+ def setUp(self):
+  self.allowed=("#katsuboy","#katsugirl","#katsuask")
+ def test_accepts_one_allowed_hashtag(self):
+  self.assertTrue(valid_submission_hashtag("#KatsuBoy Halo semuanya",self.allowed))
+ def test_rejects_missing_hashtag(self):
+  self.assertFalse(valid_submission_hashtag("Halo semuanya",self.allowed))
+ def test_rejects_multiple_allowed_hashtags(self):
+  self.assertFalse(valid_submission_hashtag("#katsuboy #katsugirl Halo",self.allowed))
+ def test_rejects_unconfigured_hashtag(self):
+  self.assertFalse(valid_submission_hashtag("#katsuadmin Halo",self.allowed))
+ def test_rejects_extra_unconfigured_hashtag(self):
+  self.assertFalse(valid_submission_hashtag("#katsuboy #lainnya Halo",self.allowed))
 class RoleTests(unittest.TestCase):
  def test_precedence(self):
   s=SimpleNamespace(developer_ids={1},admin_ids={1,2}); self.assertEqual(role_for(1,s),'Developer'); self.assertEqual(role_for(2,s),'Admin'); self.assertEqual(role_for(3,s),'Member')
