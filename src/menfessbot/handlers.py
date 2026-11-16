@@ -42,9 +42,19 @@ async def membership_gate(update,context):
     return False
 
 async def start(update,context):
-    await update.effective_message.reply_text("Selamat datang! Kirim teks atau media di chat pribadi ini dengan tepat satu hashtag kategori: #katsuboy, #katsugirl, atau #katsuask. Gunakan /balance untuk saldo dan /help untuk panduan.")
+    settings=context.application.bot_data["settings"]
+    choices=", ".join(settings.allowed_hashtags)
+    await update.effective_message.reply_text(
+        f"Selamat datang! Kirim teks atau media di chat pribadi ini dengan tepat satu hashtag kategori: {choices}. "
+        "Gunakan /balance untuk saldo dan /help untuk panduan."
+    )
 async def help_command(update,context):
-    await update.effective_message.reply_text("/start · /privacy · /balance · /transactions · /transfer ID JUMLAH · /grant ID JUMLAH (Admin/Developer)\nSetiap menfess wajib menyertakan tepat satu hashtag kategori yang diizinkan.")
+    settings=context.application.bot_data["settings"]
+    choices=", ".join(settings.allowed_hashtags)
+    await update.effective_message.reply_text(
+        "/start · /privacy · /balance · /transactions · /transfer ID JUMLAH · /grant ID JUMLAH (Admin/Developer)\n"
+        f"Setiap menfess wajib menyertakan tepat satu hashtag kategori: {choices}."
+    )
 async def privacy_command(update,context):
     await update.effective_message.reply_text("Data yang dicatat: Telegram ID, username, nama tampilan, waktu kirim, metadata moderasi dan transaksi koin. Owner dapat melihat identitas dan waktu melalui channel audit privat. Moderator melihat isi kiriman sebelum publikasi.")
 async def balance_command(update,context):
