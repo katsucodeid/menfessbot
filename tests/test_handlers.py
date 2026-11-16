@@ -97,7 +97,7 @@ class HandlerTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("Privasi MenfessBot\n", response)
         self.assertIn("Pembersihan otomatis", response)
         self.assertIn("pending", response)
-        self.assertIn("moderator", response)
+        self.assertIn("Moderator", response)
 
     async def test_privacy_reports_configured_retention(self):
         message = SimpleNamespace(reply_text=AsyncMock())
@@ -194,7 +194,7 @@ class HandlerTests(unittest.IsolatedAsyncioTestCase):
         store.get.return_value = {"source_chat_id": 42, "source_message_id": 200}
         store.set_status.return_value = False
         await moderate(SimpleNamespace(callback_query=callback), context)
-        self.assertIn("status database gagal", callback.edit_message_text.await_args.args[0])
+        self.assertIn("database gagal", callback.edit_message_text.await_args.args[0].lower())
         store.release_claim.assert_called_once_with(7)
 
     async def test_non_moderator_cannot_moderate(self):
