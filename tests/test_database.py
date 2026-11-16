@@ -85,7 +85,6 @@ class SubmissionStoreTests(unittest.TestCase):
         old_approved = self.store.add(1, 2, 10)
         self.store.set_status(old_approved, "approved")
         # Set deterministic historical timestamps for the test.
-        import sqlite3
         with self.store._connect() as db:
             db.execute("UPDATE submissions SET created_at = ?, reviewed_at = ? WHERE id = ?",
                        ((now - timedelta(days=31)).strftime("%Y-%m-%d %H:%M:%S"),
