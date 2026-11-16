@@ -95,6 +95,9 @@ async def grant_command(update,context):
     await update.effective_message.reply_text("Koin diberikan." if ok else "Gagal.")
 async def receive_submission(update,context):
     m=update.effective_message; u=update.effective_user
+    if u is None:
+        await m.reply_text("Kiriman tanpa identitas pengguna tidak dapat diproses.")
+        return
     if m.chat.type!="private" or not await membership_gate(update,context): return
     s=context.application.bot_data["settings"]
     content=m.text or m.caption or ""
@@ -143,5 +146,9 @@ async def moderate(update,context):
                 logger.exception("Publish failed"); await q.edit_message_text("Gagal publikasi. Periksa izin bot di channel."); return
             status="approved"
         else: status="rejected"
-        store.set_status(sid,status); await q.edit_message_text(f"Menfess #{sid}: {status}.")
+        if not store.set_status(sid,status):
+            logger.error("Submission %s was published but its status could not be updated",sid)
+            await q.edit_message_text("Publikasi berhasil, tetapi status database gagal diperbarui. Periksa antrean dan channel sebelum mencoba lagi.")
+            return
+        await q.edit_message_text(f"Menfess #{sid}: {status}.")
     finally: store.release_claim(sid)
