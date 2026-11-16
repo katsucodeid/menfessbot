@@ -128,6 +128,6 @@ class SubmissionStore:
         with self._connect() as db:
             result = db.execute(
                 """DELETE FROM submissions
-                   WHERE status IN ('approved', 'rejected') AND created_at < ?""",
+                   WHERE status IN ('approved', 'rejected') AND COALESCE(reviewed_at, created_at) < ?""",
                 (cutoff,))
             return result.rowcount
