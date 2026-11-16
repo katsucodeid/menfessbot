@@ -68,14 +68,20 @@ class SubmissionStore:
         with self._connect() as db:
             db.execute("BEGIN IMMEDIATE")
             recent = db.execute(
-                """SELECT COUNT(*) AS amount, MAX(created_at) AS latest
+                """SELECT COUNT(*) AS amount
                    FROM submissions
                    WHERE sender_user_id = ? AND created_at >= ?""",
                 (sender_user_id, window_start)).fetchone()
             if recent["amount"] >= hourly_limit:
                 return None
-            if cooldown_seconds and recent["latest"] and recent["latest"] >= cooldown_start:
-                return None
+            if cooldown_seconds:
+                latest = db.execute(
+                    """SELECT MAX(created_at) AS latest
+                       FROM submissions
+                       WHERE sender_user_id = ? AND created_at >= ?""",
+                    (sender_user_id, cooldown_start)).fetchone()["latest"]
+                if latest is not None:
+                    return None
             cursor = db.execute(
                 """INSERT INTO submissions
                    (source_chat_id, source_message_id, sender_user_id, created_at)
