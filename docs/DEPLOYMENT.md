@@ -12,7 +12,7 @@ sudo apt update
 sudo apt install -y python3 python3-venv python3-pip git
 sudo -u menfessbot git clone https://github.com/katsucodeid/menfessbot.git /opt/menfessbot/app
 sudo -u menfessbot python3 -m venv /opt/menfessbot/venv
-sudo -u menfessbot /opt/menfessbot/venv/bin/pip install -r /opt/menfessbot/app/requirements.txt
+sudo -u menfessbot /opt/menfessbot/venv/bin/pip install /opt/menfessbot/app
 sudo install -d -o menfessbot -g menfessbot -m 0750 /var/lib/menfessbot
 ```
 
@@ -106,7 +106,7 @@ For an upgrade, fetch reviewed code first, then:
 ```bash
 sudo systemctl stop menfessbot
 sudo -u menfessbot git -C /opt/menfessbot/app pull --ff-only
-sudo -u menfessbot /opt/menfessbot/venv/bin/pip install -r /opt/menfessbot/app/requirements.txt
+sudo -u menfessbot /opt/menfessbot/venv/bin/pip install /opt/menfessbot/app
 sudo systemctl start menfessbot
 sudo journalctl -u menfessbot -n 100 --no-pager
 ```
