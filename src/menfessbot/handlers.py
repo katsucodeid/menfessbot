@@ -148,7 +148,7 @@ async def moderate(update,context):
         else: status="rejected"
         if not store.set_status(sid,status):
             logger.error("Submission %s was published but its status could not be updated",sid)
-            await q.edit_message_text("Publikasi berhasil, tetapi status database gagal diperbarui. Periksa antrean dan channel sebelum mencoba lagi.")
+            await q.edit_message_text("Status database gagal diperbarui. " + ("Pesan mungkin sudah terbit di channel; periksa channel sebelum mencoba lagi." if status == "approved" else "Penolakan belum tercatat dan biaya belum dikembalikan. Periksa antrean sebelum mencoba lagi."))
             return
         await q.edit_message_text(f"Menfess #{sid}: {status}.")
     finally: store.release_claim(sid)
