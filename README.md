@@ -11,7 +11,7 @@ Telegram menfess bot with private-chat submissions, mandatory group and channel 
 - Developer has unlimited submission coins; Admin can moderate and grant coins; Member can submit and use wallet commands.
 - Coin balances, transaction ledger, transfers, submission fee and automatic refund when a submission is rejected.
 - SQLite persistence, per-user cooldown and rolling hourly limit.
-- Reviewed submissions are pruned at startup and every six hours; pending items are retained.
+- Reviewed submissions are pruned at startup and every six hours only when `RETENTION_DAYS` is greater than zero; `0` disables automatic cleanup and pending items are always retained.
 
 ## Setup
 Requires Python 3.11+ and a Telegram bot token from @BotFather. Add the bot to both required chats so it can check membership. Give it post permission in the publication channel, and send-message permission in the private Owner audit channel.
@@ -30,7 +30,7 @@ Run: python -m venv .venv; activate the environment; python -m pip install .; co
 - ALLOWED_HASHTAGS: comma-separated allowed category hashtags; defaults to `#katsuboy,#katsugirl,#katsuask`. Each submission must include exactly one.
 - SUBMISSION_COOLDOWN_SECONDS: cooldown (default 60).
 - SUBMISSION_HOURLY_LIMIT: max submissions per rolling hour (default 5).
-- RETENTION_DAYS: retention for reviewed submission rows.
+- RETENTION_DAYS: retention for reviewed submission rows; set to `0` to disable automatic cleanup (default).
 
 Telegram chat IDs may be negative. Never commit .env, bot tokens, or database files. The audit channel contains personal data and must remain private.
 
