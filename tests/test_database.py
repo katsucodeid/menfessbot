@@ -1,7 +1,9 @@
 import os
 import tempfile
 import unittest
+
 from menfessbot.database import SubmissionStore
+
 
 class SubmissionStoreTests(unittest.TestCase):
     def setUp(self):
@@ -28,6 +30,25 @@ class SubmissionStoreTests(unittest.TestCase):
         sid = self.store.add(123, 456, None)
         with self.assertRaises(ValueError):
             self.store.set_status(sid, "published")
+
+    def test_only_one_moderator_can_claim_submission(self):
+        sid = self.store.add(123, 456, None)
+        self.assertTrue(self.store.claim(sid))
+        self.assertFalse(self.store.claim(sid))
+
+    def test_releasing_claim_allows_retry(self):
+        sid = self.store.add(123, 456, None)
+        self.assertTrue(self.store.claim(sid))
+        self.store.release_claim(sid)
+        self.assertTrue(self.store.claim(sid))
+
+    def test_final_status_removes_claim_and_prevents_reclaim(self):
+        sid = self.store.add(123, 456, None)
+        self.assertTrue(self.store.claim(sid))
+        self.assertTrue(self.store.set_status(sid, "rejected"))
+        self.assertFalse(self.store.claim(sid))
+        self.assertEqual(self.store.get(sid)["status"], "rejected")
+
 
 if __name__ == "__main__":
     unittest.main()
