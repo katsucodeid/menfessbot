@@ -104,7 +104,8 @@ class SubmissionStore:
             db.execute("DELETE FROM moderation_claims WHERE submission_id=?",(sid,))
             return True
     def prune_reviewed(self,retention_days,*,now=None):
-        if retention_days<1: raise ValueError("retention_days must be >= 1")
+        if retention_days<0: raise ValueError("retention_days must be >= 0")
+        if retention_days == 0: return 0
         cutoff=(utc(now)-timedelta(days=retention_days)).strftime("%Y-%m-%d %H:%M:%S")
         with self._connect() as db:
             return db.execute("DELETE FROM submissions WHERE status IN ('approved','rejected') AND COALESCE(reviewed_at,created_at)<?",(cutoff,)).rowcount
