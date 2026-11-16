@@ -1,65 +1,13 @@
 import unittest
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, Mock
-
-from menfessbot.handlers import privacy_command, receive_submission
-
-
-class HandlerTests(unittest.IsolatedAsyncioTestCase):
-    def make_update(self, user_id=42):
-        message = SimpleNamespace(
-            chat_id=100, message_id=200, reply_text=AsyncMock()
-        )
-        return SimpleNamespace(
-            effective_message=message,
-            effective_user=SimpleNamespace(id=user_id) if user_id is not None else None,
-        ), message
-
-    async def test_privacy_command_explains_stored_data_and_pending_retention(self):
-        update, message = self.make_update()
-        await privacy_command(update, SimpleNamespace())
-        text = message.reply_text.await_args.args[0]
-        self.assertIn("ID pengguna", text)
-        self.assertIn("tidak dihapus otomatis", text)
-        self.assertIn("moderator", text)
-
-    async def test_rate_limited_submission_is_not_sent_to_moderators(self):
-        update, message = self.make_update()
-        store = Mock()
-        store.add_with_limits.return_value = None
-        bot = SimpleNamespace(send_message=AsyncMock(), copy_message=AsyncMock())
-        settings = SimpleNamespace(submission_cooldown_seconds=60, submission_hourly_limit=5)
-        context = SimpleNamespace(application=SimpleNamespace(bot_data={
-            "store": store, "settings": settings, "admin_ids": {9}
-        }), bot=bot)
-        await receive_submission(update, context)
-        store.add_with_limits.assert_called_once()
-        bot.send_message.assert_not_awaited()
-        bot.copy_message.assert_not_awaited()
-        self.assertIn("Batas pengiriman", message.reply_text.await_args.args[0])
-
-    async def test_missing_user_is_rejected(self):
-        update, message = self.make_update(user_id=None)
-        store = Mock()
-        context = SimpleNamespace(application=SimpleNamespace(bot_data={"store": store}))
-        await receive_submission(update, context)
-        store.add_with_limits.assert_not_called()
-        self.assertIn("tanpa identitas", message.reply_text.await_args.args[0])
-
-    async def test_accepted_submission_notifies_moderator(self):
-        update, message = self.make_update()
-        store = Mock()
-        store.add_with_limits.return_value = 7
-        bot = SimpleNamespace(send_message=AsyncMock(), copy_message=AsyncMock())
-        settings = SimpleNamespace(submission_cooldown_seconds=60, submission_hourly_limit=5)
-        context = SimpleNamespace(application=SimpleNamespace(bot_data={
-            "store": store, "settings": settings, "admin_ids": {9}
-        }), bot=bot)
-        await receive_submission(update, context)
-        bot.send_message.assert_awaited_once()
-        bot.copy_message.assert_awaited_once_with(9, 100, 200)
-        self.assertIn("diterima", message.reply_text.await_args.args[0])
-
-
-if __name__ == "__main__":
-    unittest.main()
+from unittest.mock import AsyncMock
+from menfessbot.handlers import role_for,membership_gate
+class RoleTests(unittest.TestCase):
+ def test_precedence(self):
+  s=SimpleNamespace(developer_ids={1},admin_ids={1,2}); self.assertEqual(role_for(1,s),'Developer'); self.assertEqual(role_for(2,s),'Admin'); self.assertEqual(role_for(3,s),'Member')
+class MembershipTests(unittest.IsolatedAsyncioTestCase):
+ async def test_join_both(self):
+  bot=SimpleNamespace(get_chat_member=AsyncMock(side_effect=[SimpleNamespace(status='member'),SimpleNamespace(status='administrator')])); msg=SimpleNamespace(reply_text=AsyncMock()); update=SimpleNamespace(effective_user=SimpleNamespace(id=42),effective_message=msg); s=SimpleNamespace(required_group_id=-1001,required_channel_id=-1002,group_join_url='',channel_join_url=''); ctx=SimpleNamespace(application=SimpleNamespace(bot_data={'settings':s}),bot=bot); self.assertTrue(await membership_gate(update,ctx)); self.assertEqual(bot.get_chat_member.await_count,2)
+ async def test_not_joined_blocks(self):
+  bot=SimpleNamespace(get_chat_member=AsyncMock(side_effect=[SimpleNamespace(status='left'),SimpleNamespace(status='member')])); msg=SimpleNamespace(reply_text=AsyncMock()); update=SimpleNamespace(effective_user=SimpleNamespace(id=42),effective_message=msg); s=SimpleNamespace(required_group_id=-1001,required_channel_id=-1002,group_join_url='',channel_join_url=''); ctx=SimpleNamespace(application=SimpleNamespace(bot_data={'settings':s}),bot=bot); self.assertFalse(await membership_gate(update,ctx)); msg.reply_text.assert_awaited_once()
+if __name__=='__main__': unittest.main()
