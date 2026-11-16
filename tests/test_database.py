@@ -87,8 +87,11 @@ class SubmissionStoreTests(unittest.TestCase):
         # Set deterministic historical timestamps for the test.
         import sqlite3
         with self.store._connect() as db:
-            db.execute("UPDATE submissions SET created_at = ? WHERE id IN (?, ?)",
-                       ((now - timedelta(days=31)).strftime("%Y-%m-%d %H:%M:%S"), old_pending, old_approved))
+            db.execute("UPDATE submissions SET created_at = ?, reviewed_at = ? WHERE id = ?",
+                       ((now - timedelta(days=31)).strftime("%Y-%m-%d %H:%M:%S"),
+                        (now - timedelta(days=31)).strftime("%Y-%m-%d %H:%M:%S"), old_approved))
+            db.execute("UPDATE submissions SET created_at = ? WHERE id = ?",
+                       ((now - timedelta(days=31)).strftime("%Y-%m-%d %H:%M:%S"), old_pending))
         self.assertEqual(self.store.prune_reviewed(30, now=now), 1)
         self.assertIsNotNone(self.store.get(old_pending))
         self.assertIsNone(self.store.get(old_approved))
